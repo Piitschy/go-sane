@@ -1,0 +1,9 @@
+package web
+
+templ Devices(names []string) {
+	<ul>
+		for _, name := range names {
+			<li hx-post="/device">{ name }</li>
+		}
+	</ul>
+}

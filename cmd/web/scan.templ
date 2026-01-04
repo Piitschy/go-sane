@@ -1,0 +1,90 @@
+package web
+
+templ ScanView() {
+  @Base() {
+    @DeviceSelector()
+  }
+}
+
+templ DeviceSelector() {
+	<div class="mb-4">
+		<label for="device" class="block text-sm font-medium text-gray-300 mb-2">Select Scanner:</label>
+		<select 
+			id="device" 
+			name="device" 
+			class="block w-full p-2 border border-gray-500 bg-blue-500 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+			hx-get="/devices-options"
+			hx-target="#device"
+			hx-trigger="load"
+			hx-swap="innerHTML"
+		>
+			<option value="">Loading scanners...</option>
+		</select>
+		<div hx-get="/device-status" hx-target="#selected-device,#status" hx-trigger="change from:#device" hx-include="#device" hx-swap="outerHTML"></div>
+	</div>
+	<div id="selected-device" class="mb-4">
+			<h1 class="text-2xl font-bold mb-4">No scanner selected</h1>
+	</div>
+}
+
+templ ScanResult(imageURL string) {
+	<div id="scan-result" class="mt-6">
+		<h3 class="text-lg font-semibold mb-3">Scanned Image:</h3>
+		<div class="border-2 border-gray-600 rounded-lg overflow-hidden">
+			<img src={ templ.URL(imageURL) } alt="Scanned Image" class="w-full h-auto max-h-96 object-contain bg-gray-700" />
+		</div>
+		<div class="mt-3">
+			<a href={ templ.URL(imageURL) } download class="bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded text-sm">
+				Download
+			</a>
+		</div>
+	</div>
+}
+
+
+
+templ DeviceOptions(deviceNames []string) {
+	<option value="">Select scanner...</option>
+	for _, deviceName := range deviceNames {
+		<option value={ deviceName }>{ deviceName }</option>
+	}
+	if len(deviceNames) == 0 {
+		<option value="">No scanners found</option>
+	}
+}
+
+templ SelectedDeviceStatus(deviceName, statusText string) {
+	<div id="selected-device" class="mb-4">
+		if deviceName != "" {
+			<h1 class="text-2xl font-bold mb-4">{ deviceName }</h1>
+		} else {
+		<h1 class="text-2xl font-bold mb-4">No scanner selected</h1>
+		}
+	</div>
+	<div id="status" class="mt-4 text-sm text-gray-400">{ statusText }</div>
+	<div id="loading" class="htmx-indicator my-2">Scanning...</div>
+	<div id="scan-button-container">
+		<button
+			hx-ext="sse"
+			hx-sse-connect="/scan-sse"
+			hx-sse-swap="scan-completed"
+			hx-target="#scan-result"
+			hx-post="/scan-sse"
+			hx-include="#device"
+			hx-indicator="#loading"
+			hx-disabled-elt="this"
+			if deviceName == "" {
+			disabled
+			}
+			id="scan-button"
+			class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded w-full disabled:bg-gray-400 disabled:cursor-not-allowed"
+		>
+			Scan
+		</button>
+	</div>
+	<div id="scan-status" class="mt-4 text-sm text-gray-400"></div>
+	<div id="scan-result">
+		<!-- Scan result will be loaded here via SSE -->
+	</div>
+	<div hx-ext="sse" hx-sse-connect="/scan-sse" hx-sse-swap="scan-started" hx-target="#scan-status"></div>
+}
